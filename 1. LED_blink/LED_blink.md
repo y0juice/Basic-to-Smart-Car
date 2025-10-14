@@ -1,6 +1,6 @@
 # 1) LED_blink
 
-![1 LED_blink](https://github.com/user-attachments/assets/4caa63cb-dfc3-421c-8fe9-aa1901f75d64)
+![1 LED_blink (1)](https://github.com/user-attachments/assets/e4734f20-71ef-40fb-95f9-09226390d6c6)
 
 ### **(1) New Project 생성**
 <img width="948" height="594" alt="image" src="https://github.com/user-attachments/assets/9724186d-c4cc-495c-85a7-6df966a36b53" />
