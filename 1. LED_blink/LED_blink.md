@@ -1,4 +1,4 @@
-<img width="547" height="420" alt="image" src="https://github.com/user-attachments/assets/d5aa60f6-0109-4740-bc21-0f8e1f94dd41" /># 1) LED_blink
+# 1) LED_blink
 
 ![1 LED_blink (1)](https://github.com/user-attachments/assets/e4734f20-71ef-40fb-95f9-09226390d6c6)
 
