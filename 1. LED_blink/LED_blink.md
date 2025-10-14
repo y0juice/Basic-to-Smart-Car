@@ -29,7 +29,8 @@
 #### 02) TEST PIN 설정
 - 디버깅이 필요할 때 등, 테스트를 위한 핀 부여
 - 오른쪽 마우스: GPIO_Output/ 왼쪽마우스: Enter User Label
-<img width="811" height="512" alt="image" src="https://github.com/user-attachments/assets/0383031b-3e2a-4985-ab6b-a18c45480858" />
+<img width="433" height="413" alt="image" src="https://github.com/user-attachments/assets/77d6e7a2-ad59-4bab-85e9-c1c6dfd07244" />
+
 
 
 ### (3) 코드 생성
