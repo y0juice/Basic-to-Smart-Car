@@ -66,7 +66,7 @@
 - 만약 Build 과정에서 error가 발생한다면 Debug를 통해 error를 수정하면 된다
 
 ### (5) Debugging
-<img width="1493" height="462" alt="image" src="https://github.com/user-attachments/assets/6093513e-f506-4c90-802d-2b2f4b9ad60f" />
+<img width="1493" height="462" alt="image" src="https://github.com/user-attachments/assets/6093513e-f506-4c90-802d-2b2f4b9ad60f" /><br>
 - Debug 모드에 들어가면 초록색 세모 버튼을 누르면 핀을 찍은 부분(104번)까지 코드가 돌아감
 - 노란 화살표를 누르면 한개씩 코드가 진행: error가 없다면 다음 코드로 넘어가지고 error 발생시 넘어가지지 않음.
 
