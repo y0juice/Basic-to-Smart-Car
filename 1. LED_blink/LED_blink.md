@@ -28,19 +28,19 @@
 
 #### 02) TEST PIN 설정
 - 디버깅이 필요할 때 등, 테스트를 위한 핀 부여
-- 오른쪽 마우스: GPIO_Output/ 왼쪽마우스: Enter User Label
+- 오른쪽 마우스: GPIO_Output/ 왼쪽마우스: Enter User Label<br>
 <img width="433" height="413" alt="image" src="https://github.com/user-attachments/assets/77d6e7a2-ad59-4bab-85e9-c1c6dfd07244" />
 
 
 
 ### (3) 코드 생성
 - alt + k
-<img width="545" height="425" alt="image" src="https://github.com/user-attachments/assets/fbec1e1d-366f-423e-ba6f-5afdcd8a9aac" />
+<img width="545" height="425" alt="image" src="https://github.com/user-attachments/assets/fbec1e1d-366f-423e-ba6f-5afdcd8a9aac" /><br>
 - USER CODE BEGIN ~ USER CODE END사이에 코드를 작성해야지 코드가 지워지지 않음
 
 ### (4) 코드 작성 
 - main 함수내의 infinite loop 일부 수정
-  <img width="236" height="312" alt="image" src="https://github.com/user-attachments/assets/a8c64998-ca5d-4e45-a300-bb98e742b303" />
+  <img width="236" height="312" alt="image" src="https://github.com/user-attachments/assets/a8c64998-ca5d-4e45-a300-bb98e742b303" /><br>
 
 
 * main.c
@@ -59,7 +59,19 @@
 
     /* USER CODE BEGIN 3 */
   }
-```  
+```
+### (4) Build Project & Upload
+<img width="1401" height="698" alt="image" src="https://github.com/user-attachments/assets/47967671-5fc8-4c08-b41e-c93ee9f2cc20" /><br>
+- Build & RUN까지 완료되면 타겟보드에서 녹색 LED가 1초 간격으로 깜빡거리는 것을 확인할 수 있다.
+- 만약 Build 과정에서 error가 발생한다면 Debug를 통해 error를 수정하면 된다
+
+### (5) Debugging
+<img width="1493" height="462" alt="image" src="https://github.com/user-attachments/assets/6093513e-f506-4c90-802d-2b2f4b9ad60f" />
+- Debug 모드에 들어가면 초록색 세모 버튼을 누르면 핀을 찍은 부분(104번)까지 코드가 돌아감
+- 노란 화살표를 누르면 한개씩 코드가 진행: error가 없다면 다음 코드로 넘어가지고 error 발생시 넘어가지지 않음.
+
+
+
   
 
 
