@@ -2,10 +2,10 @@
 
 # STM 32: Nucleo_Fl03RB(type: Nucleo-64)
 
-1) **LED_blink**: Delay 사용
+1) **LED_blink**: LD2 blink by Delay 사용
 2) **USART_PRINT + LED Toggle** : 키보드 입력을 TeraTerm을 통해 출력하고, LED on/off 제어
 3) **EXIT**: 버튼으로 LD2 ON/off (LED Toggle)
-4) **TM_TimeBase** : LD2 깜빡임 조절: CNT 사용
+4) **TM_TimeBase** : LD2 blink by CNT 사용
 5) **ADC_TemperatureSensor**: 온도 센서로 측정된 신호를 TeraTerm을 통해 출력(내장 온도센서)
 6) **ADC_R**: 가변전항 값 Tera Term으로 출력 (ADC가 전압을 어떻게 디지털 값으로 바꾸는지)
 7) **HC-SR04**: 초음파센서로 거리측정
