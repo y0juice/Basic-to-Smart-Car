@@ -3,6 +3,7 @@
 기능2) B1으로 LED Toggle<br>
 기능3) a 입력시: LED on/ 그외 다른 키: LED off<br>
 <img width="415" height="345" alt="image" src="https://github.com/user-attachments/assets/1df061dd-86ba-4a18-a5a7-256feece9460" />
+![2  USART_PRINT LED Toggle2 (2)](https://github.com/user-attachments/assets/bc87972d-5d15-43d1-b167-345993d5e45d)
 
 
 
