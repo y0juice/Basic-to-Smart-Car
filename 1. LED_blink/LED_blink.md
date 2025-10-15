@@ -34,7 +34,7 @@
 
 
 ### (3) 코드 생성
-- alt + k
+- alt + k<br>
 <img width="545" height="425" alt="image" src="https://github.com/user-attachments/assets/fbec1e1d-366f-423e-ba6f-5afdcd8a9aac" /><br>
 - USER CODE BEGIN ~ USER CODE END사이에 코드를 작성해야지 코드가 지워지지 않음
 
