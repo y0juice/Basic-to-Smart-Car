@@ -1,5 +1,5 @@
-# 4) TM_TimeBase
-기능) CNT 제어로 LED blink<br>
+# 4. TM_TimeBase
+**기능) CNT 제어로 LED blink**<br>
 ![4  TM_TimeBase](https://github.com/user-attachments/assets/cb6b9cf4-2763-4236-ad72-e6e0721a3f6e)
 
 ### (1) Pinout & Configuration
