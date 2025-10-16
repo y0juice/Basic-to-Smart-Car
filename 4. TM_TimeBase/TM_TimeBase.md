@@ -1,10 +1,14 @@
 # 4) TM_TimeBase
-기능) CNT 제어로 LED blink
-![EXIT](https://github.com/user-attachments/assets/9d39c5b6-b0d3-4046-b6e5-d343873ea304)
+기능) CNT 제어로 LED blink<br>
+![4  TM_TimeBase](https://github.com/user-attachments/assets/cb6b9cf4-2763-4236-ad72-e6e0721a3f6e)
 
 ### (1) Pinout & Configuration
 
-#### 01) TIM3 설정
+#### 01) RCC(Reset & Clcok Contorl)
+<img width="1105" height="552" alt="image" src="https://github.com/user-attachments/assets/fea9eacc-5b89-47b8-8bb4-f71d4eb84576" /><br>
+
+
+#### 02) TIM3 설정
 - 총 5가지 타이머 존재(RTC, TIM1, TIM2, TIM3, TIM4)<br>
 ##### <STM32 타이머 + RTC 비교 & 추천 사용 상황>
 
@@ -19,38 +23,60 @@
 | **날짜/시간 기능** | ❌ | ❌ | ❌ | ✅ (연/월/일/시/분/초) |
 | **알람 기능** | ❌ | ❌ | ❌ | ✅ 날짜/시간 기반 알람 가능 |
 | **추천 사용 상황** | 고급 PWM / 모터 제어 | 긴 시간 측정 | LED 깜빡이기, 서보 PWM, 기본 타이밍 | 실제 시계, 알람, 절전 모드 복귀, 시간 유지 |
+___
 
 =>**LED 깜빡이기** 기능을 구현하려면, 간단한 PWM 출력이 가능한 **TIM3**을 사용하는 것이 적합
+<img width="1214" height="619" alt="image" src="https://github.com/user-attachments/assets/00308e09-e77c-4539-9e94-c68844b1ed18" /><br>
+- TIM의 parameter 조절 전, Clock and Configuration 탭에서 타이머에 공급되는 클럭 확인: **64(MHz)**<br>
+  
+<img width="831" height="616" alt="image" src="https://github.com/user-attachments/assets/e921ecc3-0c73-46c4-9ceb-0935cbb2ef81" /><br>
+- Prescaler와 Counter Period 설정값에 의해 타이머 인터럽트의 발생 주기 결정
+  => Prescaler: 입력 클럭을 나누는 값, prescaler=n 이라면 n개의 클럭이 입력될 때마다 1개의 클럭 출력<br>
+  => Counter Period: 카운터가 0부터 카운트할 최댓값<br>
+- Prescarler = 63, Counter Period 999<br>
+  => Prescarler를 64로 설정: 타이머 공급(64,000,000Hz)/64= 1,000,000 Hz 클럭 공급<br>
+                           : 1초에 1,000,000 클럭인가 = 1clk 당, 1/1,000,000초 소요<br>
+  => Counter Period를 1000으로 설정: 클럭을 1,000번 카운트 할 때마다 타이머 인터럽트 발생<br>
+                                   : 인터럽트 주기 1/1,000,000초 * 1,000 = 1/1,000초 = 1ms<br>
+								     ***(1s가 필요하다면 interrupt 1,000이 발생할 때마다 처리)***
 
+  #### 03) interrupt 설정
+<img width="1845" height="428" alt="image" src="https://github.com/user-attachments/assets/bb8697be-b09f-4004-b8ed-b5fcd2deab76" />
 
-
-
-
-
-- stm32<br>
-<img width="926" height="670" alt="image" src="https://github.com/user-attachments/assets/2d2ea926-5483-45f9-b841-2c92d7576373" /><br>
-<img width="1538" height="654" alt="image" src="https://github.com/user-attachments/assets/807db4b7-a69a-4b80-a04d-a8c236d1fa47" />
-
-#### 02) RCC(Reset & Clcok Contorl)
-<img width="1105" height="552" alt="image" src="https://github.com/user-attachments/assets/fea9eacc-5b89-47b8-8bb4-f71d4eb84576" /><br>
-
-
-### (2) 코드작성
-- main.c 추가 코드
+___
+#### Generate Code ####
+___
+  #### 03) 코드작성
+  -main.c 추가 코드
+```c
+/* USER CODE BEGIN PV */
+volatile int gTimerCnt;
+/* USER CODE END PV */
+```
+=> volatile을 붙이면 항상 메모리에 읽고 쓰도록 함( interrupt에서 바뀐 값이 즉시 반영되도록)
 
 ```c
-//버튼(외부 인터럽트)-> 콜백함수 실행 => 핀번호 확인(B1_Pin(13) -> LED 토글(누르면 켜지다가 다음번누를때 꺼짐)
-void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin)
+  /* USER CODE BEGIN 2 */
+if (HAL_TIM_Base_Start_IT (&htim3) != HAL_OK)// 타이머 시작 실패 시 처리
 {
-	switch(GPIO_Pin)
-	{
-	case B1_Pin://B1을 눌렀을 때
-		HAL_GPIO_TogglePin (LD2_GPIO_Port, LD2_Pin);// LED가 켜져잇으면 끄고, 켜져 있으면 켠다: Toggle
-		break;
+	Error_Handler ();// 오류 처리 루틴
+}
+  /* USER CODE END 2 */
+```
+=> HAL_TIM_Base_Start_IT(&htim3): TIM3 타이머를 interrupt 모드로 시작
 
-	default:// 그 외 버튼은 무
-		;
+```c
+/* USER CODE BEGIN 0 */
+void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)
+{
+	gTimerCnt++;
+	if(gTimerCnt ==1000)//clk=lms -> gTimerCnt==1000 1초당 한번 깜빡임
+	{
+		gTimerCnt = 0;
+		HAL_GPIO_TogglePin (LD2_GPIO_Port, LD2_Pin);
 	}
 }
 ```
-=>B1으로 LED Toggle
+=> void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim): 타이머가 주기마다 호출<br>
+=> gTimerCnt++; : interrupt 발생 시 카운터 증가. volatile int gTimerCnt로 선언<br>
+=> if(gTimerCnt ==1000): CNT clk 64M, Prescaler=64, CNT period= 1000 -> **인터럽트 주기 = 1/1,000초 = 1ms *1000번 = 1s** <br>
