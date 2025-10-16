@@ -1,8 +1,10 @@
 # 5. ADC_TemperatureSensor
 
 **기능) STM32F103RB ADC1의 Temerature Sensor 채널에 연결된 내부의 온도센서를 이용하여 온도를 측정 -> Teraterm** <br>
+<img width="812" height="482" alt="image" src="https://github.com/user-attachments/assets/4360706c-5e36-4e74-9f45-6338fac0da49" /><br>
+=> ADC 온도랑 섭씨 온도랑 반비례
 
-![4  TM_TimeBase](https://github.com/user-attachments/assets/cb6b9cf4-2763-4236-ad72-e6e0721a3f6e)
+
 
 ### (1) Pinout & Configuration
 
@@ -19,63 +21,112 @@
 => ADC1 단일 채널, **계속 변환**, 오른쪽 정렬, 단순 온도 측정용<br>
 => Sampling Time = 13.5cycles → 전체 변환 시간 = 13.5 +12.5 = 26 ADC clock cycles <br>
   : 길면 정확도 ↑ & 변환 속도 ↓, 짧으면  길면 정확도 ↓,변환 속도 ↑
+- clk 조절: ADC 클럭은 최대 8~12 MHz 권장(64M/8= 8MHz로 안정)<br>
+<img width="2339" height="601" alt="image" src="https://github.com/user-attachments/assets/0dca8d3e-e40f-4a3b-a1b3-f881c7ada9db" />
+#### 04) printf()에서 %f 실수 출력을 위한 Cube IDE 설정 변경
+
+<img width="1105" height="705" alt="image" src="https://github.com/user-attachments/assets/e674a280-8aa5-442a-b8a2-4dcf12609905" />
 
 
-
-___
-
-=>**LED 깜빡이기** 기능을 구현하려면, 간단한 PWM 출력이 가능한 **TIM3**을 사용하는 것이 적합
-<img width="1214" height="619" alt="image" src="https://github.com/user-attachments/assets/00308e09-e77c-4539-9e94-c68844b1ed18" /><br>
-- TIM의 parameter 조절 전, Clock and Configuration 탭에서 타이머에 공급되는 클럭 확인: **64(MHz)**<br>
-  
-<img width="831" height="616" alt="image" src="https://github.com/user-attachments/assets/e921ecc3-0c73-46c4-9ceb-0935cbb2ef81" /><br>
-- Prescaler와 Counter Period 설정값에 의해 타이머 인터럽트의 발생 주기 결정
-  => Prescaler: 입력 클럭을 나누는 값, prescaler=n 이라면 n개의 클럭이 입력될 때마다 1개의 클럭 출력<br>
-  => Counter Period: 카운터가 0부터 카운트할 최댓값<br>
-- Prescarler = 63, Counter Period 999<br>
-  => Prescarler를 64로 설정: 타이머 공급(64,000,000Hz)/64= 1,000,000 Hz 클럭 공급<br>
-                           : 1초에 1,000,000 클럭인가 = 1clk 당, 1/1,000,000초 소요<br>
-  => Counter Period를 1000으로 설정: 클럭을 1,000번 카운트 할 때마다 타이머 인터럽트 발생<br>
-                                   : 인터럽트 주기 1/1,000,000초 * 1,000 = 1/1,000초 = 1ms<br>
-								     ***(1s가 필요하다면 interrupt 1,000이 발생할 때마다 처리)***
-
-  #### 03) interrupt 설정
-<img width="1845" height="428" alt="image" src="https://github.com/user-attachments/assets/bb8697be-b09f-4004-b8ed-b5fcd2deab76" />
 
 ___
 #### Generate Code ####
 ___
+
   #### 03) 코드작성
   -main.c 추가 코드
-```c
-/* USER CODE BEGIN PV */
-volatile int gTimerCnt;
-/* USER CODE END PV */
+  ```c
+/* USER CODE BEGIN Includes */
+#include <stdio.h>
+/* USER CODE END Includes */
 ```
-=> volatile을 붙이면 항상 메모리에 읽고 쓰도록 함( interrupt에서 바뀐 값이 즉시 반영되도록)
 
 ```c
-  /* USER CODE BEGIN 2 */
-if (HAL_TIM_Base_Start_IT (&htim3) != HAL_OK)// 타이머 시작 실패 시 처리
-{
-	Error_Handler ();// 오류 처리 루틴
-}
-  /* USER CODE END 2 */
+/* USER CODE BEGIN PV */
+const float AVG_SLOPE = 4.3E-03;//1도당 전압 변화량 = 0.0043ㅍ
+const float V25 = 1.43;
+const float ADC_TO_VOLT= 3.3/4096;
+/* USER CODE END PV */
 ```
-=> HAL_TIM_Base_Start_IT(&htim3): TIM3 타이머를 interrupt 모드로 시작
+=> AVG_SLOPE(전압 변화률): 온도가 1 °C 변하면 센서 전압이 4.3 mV 변함.<br>
+=> V25 = 1.43;// 온도 25 °C에서 내부 센서 전압 = 1.43V(datasheet에 명시)<br>
+=> ADC_TO_VOLT(실제 전압 변환 계수): 12bit ADC(0~4095), ADC 0 이면 0V/ ADC 4095면 보통 3.3V<br>
+| ADC 값 (12bit) | 전압 V_sense (V) | 온도 T (°C) |
+| ------------- | -------------- | --------- |
+| 4095          | 3.3            | 매우 낮음     |
+| 3000          | 2.42           | 낮음        |
+| 2000          | 1.61           | 약 25      |
+| 1000          | 0.805          | 높음        |
+| 0             | 0              | 매우 높음     |<br>
+
+
 
 ```c
 /* USER CODE BEGIN 0 */
-void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)
+#ifdef __GNUC__
+/* With GCC, small printf (option LD Linker->Libraries->Small printf
+   set to 'Yes') calls __io_putchar() */
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+
+PUTCHAR_PROTOTYPE
 {
-	gTimerCnt++;
-	if(gTimerCnt ==1000)//clk=lms -> gTimerCnt==1000 1초당 한번 깜빡임
-	{
-		gTimerCnt = 0;
-		HAL_GPIO_TogglePin (LD2_GPIO_Port, LD2_Pin);
-	}
+  if (ch == '\n')
+    HAL_UART_Transmit (&huart2, (uint8_t*) "\r", 1, 0xFFFF);
+  HAL_UART_Transmit (&huart2, (uint8_t*) &ch, 1, 0xFFFF);
+
+  return ch;
+}
+/* USER CODE END 0 */
+```
+=> printf()를 UART로 전달해서 시리얼 모니터에서 출력
+```c
+  /* USER CODE BEGIN 2 */
+  if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK)
+  {
+	  Error_Handler();
+  }
+
+  if (HAL_ADC_Start (&hadc1) != HAL_OK)
+  {
+	  Error_Handler();
+  }
+
+  uint16_t adc1;//디지털 값 변수
+
+  float vSense;// 온도 전압 값 변수
+  float temp;// 섭씨 온도 값 변
+  /* USER CODE END 2 */
+```
+=> (HAL_ADCEx_Calibration_Start(&hadc1): ADC 보정 함수<br>
+=> (HAL_ADC_Start (&hadc1) != HAL_OK): ADC 시작 함수<br>
+```c
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+
+  while (1)
+  {
+
+    /* USER CODE BEGIN 3 */
+	  HAL_ADC_PollForConversion (&hadc1, 100);
+	  adc1 = HAL_ADC_GetValue (&hadc1);// ADC 값 저
+	// printf("ADC1_temperature: %d \n", adc1);
+    /* USER CODE END WHILE */
+	  vSense = adc1 * ADC_TO_VOLT;
+	  temp = (V25-vSense) / AVG_SLOPE +25.0;
+	  printf ("temperature: %d, %f \n", adc1, temp);
+
+	  HAL_Delay(100);
+
+  }
+  /* USER CODE END 3 */
 }
 ```
-=> void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim): 타이머가 주기마다 호출<br>
-=> gTimerCnt++; : interrupt 발생 시 카운터 증가. volatile int gTimerCnt로 선언<br>
-=> if(gTimerCnt ==1000): CNT clk 64M, Prescaler=64, CNT period= 1000 -> **인터럽트 주기 = 1/1,000초 = 1ms *1000번 = 1s** <br>
+=> HAL_ADC_PollForConversion(&hadc1, 100): ADC 변환이 끝날 때까지 기다리는 함수 (최대 100ms까지 기다림)<br>
+=>  temp = (V25-vSense) / AVG_SLOPE +25.0: 25°C 기준 전압 V25보다 얼마나 낮거나 높은지 계산한 후, 기준점인 25도 더하기
+
+
+
+
