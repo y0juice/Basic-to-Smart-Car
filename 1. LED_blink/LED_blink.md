@@ -1,4 +1,4 @@
-# 1) LED_blink
+# 1. LED_blink
 
 ![1 LED_blink (1)](https://github.com/user-attachments/assets/e4734f20-71ef-40fb-95f9-09226390d6c6)
 
