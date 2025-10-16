@@ -1,5 +1,5 @@
 # 3. EXIT
-기능) B1 버튼을 누름 -> LED가 켜져있으면 끄고, 켜져 있으면 켠다: Toggle<br>
+**기능) B1 버튼을 누름 -> LED가 켜져있으면 끄고, 켜져 있으면 켠다: Toggle**<br>
 ![EXIT](https://github.com/user-attachments/assets/9d39c5b6-b0d3-4046-b6e5-d343873ea304)
 
 ### (1) Pinout & Configuration
