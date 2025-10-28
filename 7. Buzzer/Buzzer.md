@@ -1,6 +1,5 @@
 # 7. Buzzer
 **기능) 초음파센서로 거리측정**<br>
-<img width="780" height="614" alt="image" src="https://github.com/user-attachments/assets/e4091a1d-72b3-49b4-b9c8-4dd4335f12ec" />
 <br>
 
 __
