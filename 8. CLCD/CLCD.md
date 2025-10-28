@@ -8,15 +8,17 @@ __
 - SCL(Serial Clock Line): 데이터를 주고 받을 때 타이밍을 주는 clk 신호<br>
 - SDA(Serial Data Line): 실제 데이터 신호<br>
 - Connectivity: **I2C1** 활성화
-   | 구분                 | I²C (아이투씨)                | UART (유아트, `huart`)                         | SPI (에스피아이)                 |
-| ------------------ | ------------------------- | ------------------------------------------- | --------------------------- |
-| **의미**             | Inter-Integrated Circuit  | Universal Asynchronous Receiver/Transmitter | Serial Peripheral Interface |
-| **통신선 개수**         | 2개 (SCL, SDA)             | 2개 (TX, RX)                                 | 최소 4개 (MOSI, MISO, SCK, SS) |
-| **통신 방식**          | 동기식 (Clock 사용)            | 비동기식 (Clock 없음)                             | 동기식 (Clock 사용)              |
-| **전송 속도**          | 보통 100k~400kHz            | 수백 kbps~Mbps                                | 수 MHz~수십 MHz (가장 빠름)        |
-| **연결 구조**          | 1개 마스터 + 여러 슬레이브          | 1:1 통신                                      | 1개 마스터 + 여러 슬레이브 (SS로 선택)   |
-| **대표 사용 예시**       | LCD, EEPROM, 센서(BMP280 등) | 블루투스, 시리얼 통신, PC 터미널                        | OLED, SD카드, 고속 센서, TFT LCD  |
-| **STM32에서 핸들러 이름** | `hi2c1`                   | `huart1`                                    | `hspi1`                     |
+  
+| 구분 | **I²C (아이투씨)** | **UART (유아트, `huart`)** | **SPI (에스피아이)** |
+|------|------------------|---------------------------|--------------------|
+| **의미** | Inter-Integrated Circuit | Universal Asynchronous Receiver/Transmitter | Serial Peripheral Interface |
+| **통신선 개수** | 2개 (SCL, SDA) | 2개 (TX, RX) | 최소 4개 (MOSI, MISO, SCK, SS) |
+| **통신 방식** | 동기식 (Clock 사용) | 비동기식 (Clock 없음) | 동기식 (Clock 사용) |
+| **전송 속도** | 보통 100k~400kHz | 수백 kbps~Mbps | 수 MHz~수십 MHz (가장 빠름) |
+| **연결 구조** | 1개 마스터 + 여러 슬레이브 | 1:1 통신 | 1개 마스터 + 여러 슬레이브 (SS로 선택) |
+| **대표 사용 예시** | LCD, EEPROM, 센서(BMP280 등) | 블루투스, 시리얼 통신, PC 터미널 | OLED, SD카드, 고속 센서, TFT LCD |
+| **STM32 핸들러 이름** | `hi2c1` | `huart1` | `hspi1` |
+
 
 ### (2) Pinout & Configuration
 
