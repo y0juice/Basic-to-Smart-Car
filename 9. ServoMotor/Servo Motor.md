@@ -7,8 +7,9 @@ __
 <img width="300" height="250" alt="image" src="https://github.com/user-attachments/assets/7077f917-8ec3-4781-9efb-d953e937d311" /><br>
 - 서버모터 날게 너무 꽉 조이면 안돼!!(고장 위험)
 - 타이머를 이용해 일정한 주기의 PWM 신호를 생성 -> 원하는 각도 조절
+-  SG90 서보 요구 PWM 주기 = 20 ms (50 Hz)<br>
   
-<PWM>
+<PWM><br>
 
 | 용어 | **의미** | **영향** |
 |------|-----------|-----------|
@@ -16,13 +17,6 @@ __
 | **PWM 딜레이 (Phase Delay)** | PWM 시작 시점의 지연 (특정 위상에서 시작) | 모터 동기 제어용 |
 | **PWM 듀티비 (Duty)** | High 구간 비율 (%) | 속도, 각도 결정 |
 
-<서보모터 기준 펄스 폭과 각도 관계>
-
-| **펄스 폭 (High 시간)** | **Duty(%)** | **의미** |
-|------------------------|-------------|-----------|
-| 1ms | 5% | 서보모터 0° |
-| 1.5ms | 7.5% | 서보모터 90° |
-| 2ms | 10% | 서보모터 180° |
 
 
 
@@ -44,26 +38,33 @@ __
 | **TIM3** | General-purpose Timer | **일반용** | 16-bit, 여러 PWM 채널 제어 가능 |
 | **TIM4** | General-purpose Timer | **일반용** | 16-bit, PWM이나 인터럽트 타이밍용 |
 
-- 정밀도가 더 높은 TIM1 사용
+- TIM2 & TIM3 사용<br>
+<img width="1420" height="695" alt="image" src="https://github.com/user-attachments/assets/2ccf113c-b34d-45a2-8d5d-679159b1e789" />
+- 기본조건 **(타이머 클럭= 64MHx/ Prescaler= 1280-1/ Period= 1000-1)**
 
-<img width="1146" height="651" alt="image" src="https://github.com/user-attachments/assets/73111b99-5f19-40d1-b716-c83c7d726095" /><br>
 - Prescaler와 Counter Period 설정값에 의해 타이머 인터럽트의 발생 주기 결정
-  => Prescaler: 해상도(입력 클럭을 나누는 값), prescaler=n 이라면 n개의 클럭이 입력될 때마다 1개의 클럭 출력<br>
-  => Counter Period: 카운터가 0부터 카운트할 최댓값<br>
-- Prescarler = 63, Counter Period 999<br>
-  => Prescarler를 64로 설정: 타이머 공급(64,000,000Hz)/64= 1,000,000 Hz 클럭 공급<br>
-                           : 1초에 1,000,000 클럭인가 = 1clk 당, 1/1,000,000초 소요<br>
-  => Counter Period를 65535으로 설정: 더 먼 거리 측정을 위해서 최대 값 설정<br>
-                                   : 인터럽트 주기 1/1,000,000초 * 65536
+  => Prescarler를1279로 설정: 타이머 공급(64,000,000Hz)/1280= **50,000 Hz 클럭** 공급<br>
+                           : 1초에 50,000 클럭인가 = 1clk 당, 1/50,000(0.02:20us)초 소요<br>
+  => Counter Period를 999으로 설정: 인터럽트 주기 1/50,000초 * 1000(1000 clk 후 인터럽트 발생) <br>
+- PWM 주기= 20ms(50Hz) : SG90 서보 요구사항과 일치<br>
 
+<펄스폭: CCR 값으로 각도 제어>
+→ PWM 한 주기 = 20 ms<br>
+→ 한 클럭(타이머 1 tick) = 20 µs<br>
+| **펄스 폭 (High 시간)** | **Duty(%)** | **의미** |
+|------------------------|-------------|-----------|
+| 1ms(최소) | 1ms/20us=50 | CCR=50 | 
+| 1.5ms(중간) | 1.5ms/20us=75 | CCR=75 |
+| 2ms(최대) | 2ms/20us=100 | CCR=100 |<br>
+- 0° → 1 ms → CCR = 50
+- 90° → 1.5 ms → CCR = 75
+- 180° → 2 ms → CCR = 100
+
+  
   #### 03) 핀 패정
-<img width="1732" height="669" alt="image" src="https://github.com/user-attachments/assets/a84c9fd3-fa38-40dd-95e8-5fe933b9ab31" />
-<img width="842" height="595" alt="image" src="https://github.com/user-attachments/assets/09dc226c-cd53-4fe7-90cc-f8d973016372" /><br>
-
-- TRIG(**PC7**):D9(IO_13)<br>
-- Echo(**PB0**):A3(IO-34)<br>
-- TRIG2(**PA8**):D7(IO_15)<br>
-- Echo2(**PA4**):A2(IO-35)<br>
+<img width="1196" height="592" alt="image" src="https://github.com/user-attachments/assets/c3d790b0-40c5-413a-a9be-dbc11ef0536a" />
+- 모터 2개활성화(TIM에서 channel 형성하면 자동으로 생김)<br>
+(TIM2_CH1 - PA0, TIM3_CH1 - PA6)<br>
 ___
 #### Generate Code ####
 ___
@@ -76,104 +77,115 @@ ___
 ```
 
 ```c
- /* USER CODE BEGIN 0 */
+#define MAX 100  // 2.5ms pulse width (최대 각도:180)
+#define MIN 50   // 0.5ms pulse width (최소 각도:0)
+#define CENTER 75 // 1.5ms pulse width (중앙 각도:90)
+#define STEP 1
+/* USER CODE END PD */
+
+/* USER CODE BEGIN PV */
+uint8_t ch;
+uint8_t pos_pan = 75;
+uint8_t pos_tilt = 75;
+/* USER CODE END PV */
+```
+```c
+/* USER CODE BEGIN 0 */
 #ifdef __GNUC__
+/* With GCC, small printf (option LD Linker->Libraries->Small printf
+   set to 'Yes') calls __io_putchar() */
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
 
+/**
+  * @brief  Retargets the C library printf function to the USART.
+  * @param  None
+  * @retval None
+  */
 PUTCHAR_PROTOTYPE
 {
+  /* Place your implementation of fputc here */
+  /* e.g. write a character to the USART1 and Loop until the end of transmission */
   if (ch == '\n')
     HAL_UART_Transmit (&huart2, (uint8_t*) "\r", 1, 0xFFFF);
   HAL_UART_Transmit (&huart2, (uint8_t*) &ch, 1, 0xFFFF);
 
   return ch;
 }
-
-void timer_start(void)
-{
-   HAL_TIM_Base_Start(&htim1);
-}
-
-void delay_us(uint16_t us)
-{
-   __HAL_TIM_SET_COUNTER(&htim1, 0); // 타이머 카운터 0으로 초기화
-   while((__HAL_TIM_GET_COUNTER(&htim1))<us); // 지정된 us까지 대기
-}
-
-//////////////////////////////////
-void trig(void)
-   {
-       HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, 1);
-       delay_us(10);
-       HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, 0);
-   }
-
-
-long unsigned int echo(void)
-      {
-          long unsigned int echo = 0;
-
-          while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == 0)
-               __HAL_TIM_SET_COUNTER(&htim1, 0);// Echo로 들어오는 신호 없으면 타이머 계속 초기화
-               while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == 1);
-               echo = __HAL_TIM_GET_COUNTER(&htim1);// High 지속시간 측정
-          if( echo >= 240 && echo <= 23000 ) return echo;// 노이저 필터터
-          else return 0;
-      }
-
-void trig2(void)
-      {
-          HAL_GPIO_WritePin(TRIG2_GPIO_Port, TRIG2_Pin, 1);
-          delay_us(10);
-          HAL_GPIO_WritePin(TRIG2_GPIO_Port, TRIG2_Pin, 0);
-      }
-
-long unsigned int echo2(void)
-         {
-             long unsigned int echo2 = 0;
-
-             while(HAL_GPIO_ReadPin(ECHO2_GPIO_Port, ECHO2_Pin) == 0){}
-                  __HAL_TIM_SET_COUNTER(&htim1, 0);
-                  while(HAL_GPIO_ReadPin(ECHO2_GPIO_Port, ECHO2_Pin) == 1);
-                  echo2 = __HAL_TIM_GET_COUNTER(&htim1);
-             if( echo2 >= 240 && echo2 <= 23000 ) return echo2;
-             else return 0;
-         }
 /* USER CODE END 0 */
 ```
-=>void trig(void): TRIG 핀에 10us 동한 High 신호 보내는 함수(HC-SR04는 내부적으로 8사이클(8-cycle)의 40kHz 초음파를 발사) <br>
-=>long unsigned int echo(void): 초음파 수신 시간 측정 함수
 
 ```c
-/* USER CODE BEGIN 2 */
-  timer_start();
-  printf("===HC-SR04 TEST===\r\n");
-  /* USER CODE END 2 */
+  /* USER CODE BEGIN 2 */
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+  // 초기 위치 설정
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pos_pan);
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pos_tilt);
+
+  printf("Servo Control Ready\r\n");
+  printf("Commands: w(up), s(down), a(left), d(right), i(center)\r\n");
+  /* USER CODE END 2 */
+```
+```c
+ /* USER CODE BEGIN WHILE */
   while (1)
   {
-       trig();// 첫 번째 초음파 센서에서 10us 펄스 발생생
-       int echo_time = echo(); // 첫 번재 센서의 Echo 신호 시간 측정
-       HAL_Delay(60);// 센서 간섭 방
-       trig2();
-       int echo_time2 = echo2();
+    if(HAL_UART_Receive(&huart2, &ch, sizeof(ch), 10) == HAL_OK)
+    {
+      if(ch == 's')
+      {
+        printf("Down\r\n");
+        if(pos_tilt + STEP <= MAX)
+          pos_tilt = pos_tilt + STEP;
+        else
+          pos_tilt = MAX;
+      }
+      else if(ch == 'w')
+      {
+        printf("Up\r\n");
+        if(pos_tilt - STEP >= MIN)
+          pos_tilt = pos_tilt - STEP;
+        else
+          pos_tilt = MIN;
+      }
+      else if(ch == 'a')
+      {
+        printf("Left\r\n");
+        if(pos_pan + STEP <= MAX)
+          pos_pan = pos_pan + STEP;
+        else
+          pos_pan = MAX;
+      }
+      else if(ch == 'd')
+      {
+        printf("Right\r\n");
+        if(pos_pan - STEP >= MIN)
+          pos_pan = pos_pan - STEP;
+        else
+          pos_pan = MIN;
+      }
+      else if(ch == 'i')
+      {
+        printf("Center\r\n");
+        pos_pan = CENTER;
+        pos_tilt = CENTER;
+      }
 
+      // PWM 듀티 사이클 업데이트
+      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pos_pan);
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pos_tilt);
 
-       if(echo_time!=0 ||echo_time2 != 0){
-           int dist = (int)(17 * echo_time / 100);
-           int dist2 = (int)(17 * echo_time2 / 100);
-           printf("DistanceL = %d(mm) / DistanceR = %d(mm)\n", dist, dist2);
-       }
+      printf("Pan: %d, Tilt: %d\r\n", pos_pan, pos_tilt);
 
-       else printf("Out of Range!\n");
+      HAL_Delay(50); // 서보 응답 시간
+    }
 
     /* USER CODE END WHILE */
-
 ```
-=> int dist = (int)(17 * echo_time / 100): 거리(mm)= 시간(us) * 0.34(mm/us)/2 = 17*시간/100<br>
-(음속 = 0.34 mm/µs (340 m/s = 340,000 mm/s → 0.34 mm/µs))
+=> pos_tilt = pos_tilt - STEP;
+
+
