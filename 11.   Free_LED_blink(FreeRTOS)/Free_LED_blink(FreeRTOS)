@@ -1,0 +1,284 @@
+# 11. Free_LED_blink(FreeRTOS)
+**기능) Free RTOS 환경으로 project 생성**<br>
+Task1: 100ms 주기로 LED on/off<br>
+Task2: "박윤주"를 teraterm에 출력<br>
+Task3: 버튼으로 LED on/off<br>
+
+__
+### (1) 이론 설명 ###
+<img width="417" height="188" alt="image" src="https://github.com/user-attachments/assets/7c86b162-3e4c-4cb7-9cd2-ab1c6333c8a5" /><br>
+=> DHT11: **신호가 High로 얼마나 유지되는지를 시간으로 구분** (타이머 필요)<br>
+<img width="1047" height="180" alt="image" src="https://github.com/user-attachments/assets/3bd2911f-2200-42b2-897d-17c41703b173" /><br>
+1)출력 모드로 18~20ms LOW → Start 신호 전송<br>
+2)입력 모드로 전환 후 80us LOW + 80us HIGH 응답을 감지<br>
+3)40비트 데이터 수신 (5바이트) :습도 정수, 습도 소수, 온도 정수, 온도 소수, 체크섬<br>
+
+
+### (2) Pinout & Configuration
+
+#### 01) RCC(Reset & Clcok Contorl)
+<img width="1105" height="552" alt="image" src="https://github.com/user-attachments/assets/fea9eacc-5b89-47b8-8bb4-f71d4eb84576" />
+
+
+#### 02)Free RTOS 설정
+: Middie and Software Packs<br>
+
+<STM 타이머 종류><br>
+ 
+| 구분 | **타이머 이름** | **종류** | **특징** |
+|------|------------------|-----------|-----------|
+| **TIM1** | Advanced-control Timer | **고급 제어용** | PWM + Dead time + Complementary Output (모터 제어용) |
+| **TIM2** | General-purpose Timer | **일반용** | 32-bit 카운터 (시간 측정/기본 PWM용) |
+| **TIM3** | General-purpose Timer | **일반용** | 16-bit, 여러 PWM 채널 제어 가능 |
+| **TIM4** | General-purpose Timer | **일반용** | 16-bit, PWM이나 인터럽트 타이밍용 |
+
+- TIM2 사용: DHT11은 **HIGH 신호의 길이로 0과 1을 표현**하기 때문에 MCU는 타이머를 써서 HIGH 지속 시간을 측정<br>
+<img width="1845" height="807" alt="image" src="https://github.com/user-attachments/assets/6e183f12-ac71-4f00-9e99-6a2deea2f137" /><br>
+- 기본조건 **(타이머 클럭= 64MHx/ Prescaler= 64-1/ Period= 65535)**<br>
+- Prescaler와 Counter Period 설정값에 의해 타이머 인터럽트의 발생 주기 결정<br>
+  => Prescarler를63로 설정: 타이머 공급(64,000,000Hz)/63= **1M Hz 클럭** 공급<br>
+                           : 1u초에 1 클럭<br>
+  => Counter Period를 65535으로 설정: 인터럽트 주기 1/1,000,000초 * 65535= 약 15Hz(T= 약 65ms) <br>
+
+  
+  #### 03) 핀 패정
+:코드로 GPIOA0 **하나의 포트로 Input, Output의 역할을 모두**해야 됨.<br>
+포트를 ioc에서 열지 않고 DHT11_SetPinOutput(), DHT11_SetPinInput()으로 설정<br>
+
+___
+#### Generate Code ####
+___
+  #### (3) 코드작성
+  -main.c 추가 코드
+```c
+/* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
+/* USER CODE END Includes */
+```
+=>#include <string.h>: 문자열 처리 함수 사용<br>
+
+```c
+typedef struct {
+    uint8_t temperature;
+    uint8_t humidity;
+    uint8_t temp_decimal;
+    uint8_t hum_decimal;
+    uint8_t checksum;
+} DHT11_Data;
+
+/* USER CODE END PD */
+
+/* USER CODE BEGIN PV */
+#define DHT11_PORT GPIOA
+#define DHT11_PIN GPIO_PIN_0
+
+DHT11_Data dht11_data;
+char uart_buffer[100];  // uart_buffer 변수 선언 추가
+/* USER CODE END PV */
+```
+=> GPIOA0 포트를 사용하겠다.
+=> uart_buffer: 유아트로 보낼 문자열 저장용 버퍼
+
+```c
+/* USER CODE BEGIN 0 */
+void DHT11_SetPinOutput(void);
+void DHT11_SetPinInput(void);
+void DHT11_SetPin(GPIO_PinState state);
+GPIO_PinState DHT11_ReadPin(void);
+void DHT11_DelayUs(uint32_t us);
+uint8_t DHT11_Start(void);
+uint8_t DHT11_ReadBit(void);
+uint8_t DHT11_ReadByte(void);
+uint8_t DHT11_ReadData(DHT11_Data *data);
+
+#ifdef __GNUC__
+/* With GCC, small printf (option LD Linker->Libraries->Small printf
+   set to 'Yes') calls __io_putchar() */
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+
+/**
+  * @brief  Retargets the C library printf function to the USART.
+  * @param  None
+  * @retval None
+  */
+PUTCHAR_PROTOTYPE
+{
+  /* Place your implementation of fputc here */
+  /* e.g. write a character to the USART1 and Loop until the end of transmission */
+  if (ch == '\n')
+    HAL_UART_Transmit (&huart2, (uint8_t*) "\r", 1, 0xFFFF);
+  HAL_UART_Transmit (&huart2, (uint8_t*) &ch, 1, 0xFFFF);
+
+  return ch;
+}
+
+// DHT11 함수 구현
+void DHT11_SetPinOutput(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = DHT11_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(DHT11_PORT, &GPIO_InitStruct);
+}
+
+void DHT11_SetPinInput(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = DHT11_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(DHT11_PORT, &GPIO_InitStruct);
+}
+
+void DHT11_SetPin(GPIO_PinState state) {
+    HAL_GPIO_WritePin(DHT11_PORT, DHT11_PIN, state);
+}
+
+GPIO_PinState DHT11_ReadPin(void) {
+    return HAL_GPIO_ReadPin(DHT11_PORT, DHT11_PIN);
+}
+
+void DHT11_DelayUs(uint32_t us) {
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
+    while (__HAL_TIM_GET_COUNTER(&htim2) < us);
+}
+
+uint8_t DHT11_Start(void) {
+    uint8_t response = 0;
+
+    // 출력 모드로 설정
+    DHT11_SetPinOutput();
+
+    // 시작 신호 전송 (18ms LOW)
+    DHT11_SetPin(GPIO_PIN_RESET);
+    HAL_Delay(20);  // 18ms -> 20ms로 변경 (더 안정적)
+
+    // HIGH로 변경 후 20-40us 대기
+    DHT11_SetPin(GPIO_PIN_SET);
+    DHT11_DelayUs(30);
+
+    // 입력 모드로 변경
+    DHT11_SetPinInput();
+
+    // DHT11 응답 확인 (80us LOW + 80us HIGH)
+    DHT11_DelayUs(40);
+
+    if (!(DHT11_ReadPin())) {
+        DHT11_DelayUs(80);
+        if (DHT11_ReadPin()) {
+            response = 1;
+        } else {
+            response = 0;
+        }
+    }
+
+    // HIGH가 끝날 때까지 대기
+    while (DHT11_ReadPin());
+
+    return response;
+}
+
+uint8_t DHT11_ReadBit(void) {
+    // LOW 신호가 끝날 때까지 대기 (50us)
+    while (!(DHT11_ReadPin()));
+
+    // HIGH 신호 시작 후 30us 대기
+    DHT11_DelayUs(30);
+
+    // 여전히 HIGH면 1, LOW면 0
+    if (DHT11_ReadPin()) {
+        // HIGH가 끝날 때까지 대기
+        while (DHT11_ReadPin());
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+uint8_t DHT11_ReadByte(void) {
+    uint8_t byte = 0;
+    for (int i = 0; i < 8; i++) {
+        byte = (byte << 1) | DHT11_ReadBit();
+    }
+    return byte;
+}
+
+uint8_t DHT11_ReadData(DHT11_Data *data) {
+    if (!DHT11_Start()) {
+        return 0; // 시작 신호 실패
+    }
+
+    // 5바이트 데이터 읽기
+    data->humidity = DHT11_ReadByte();
+    data->hum_decimal = DHT11_ReadByte();
+    data->temperature = DHT11_ReadByte();
+    data->temp_decimal = DHT11_ReadByte();
+    data->checksum = DHT11_ReadByte();
+
+    // 체크섬 확인
+    uint8_t calculated_checksum = data->humidity + data->hum_decimal +
+                                 data->temperature + data->temp_decimal;
+
+    if (calculated_checksum == data->checksum) {
+        return 1; // 성공
+    } else {
+        return 0; // 체크섬 오류
+    }
+}
+/* USER CODE END 0 */
+```
+=>(1) DHT11_SetPinOutput/Input: 출력모드(Push-Pull: MCU->센서)/ 입력모드(Pull-up: 센서->MCU)<br>
+=>(2) DHT11_Start(): 출력 모드-> Low(18-20ms 유지: 시작신호)->High(20-40us유지)->입력모드로 바꾼후 센서 응답(80µs LOW + 80µs HIGH)을 확인<br>
+=>(3) DHT11_ReadBit(): 센서가 High 유지하는 시간으로 0/1유지<br>
+=>(4) DHT11_ReadByte(): ReadBit() 8번 박복해서 1byte 읽음<br>
+=>(5) DHT11_ReadData(): 5바이트(습도, 습도소수, 온도, 온도소수, 체크섬)를 순서대로 읽고 -> 체크섬 검증<br>
+=>체크섬: MCU 계산 결과 =! DHT의 체크섬노이즈나 타이밍 오류)<br>
+<img width="836" height="373" alt="image" src="https://github.com/user-attachments/assets/66307318-4dee-4ece-b869-635541cd383a" />
+
+```c
+  /* USER CODE BEGIN 2 */
+  // 타이머 시작 (마이크로초 단위 지연용)
+  HAL_TIM_Base_Start(&htim2);
+
+  // UART 초기화 메시지
+  sprintf(uart_buffer, "DHT11 Temperature & Humidity Sensor Test\r\n");
+  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), HAL_MAX_DELAY);
+  /* USER CODE END 2 */
+```
+```c
+  // 타이머 시작 (마이크로초 단위 지연용)
+  HAL_TIM_Base_Start(&htim2);
+
+  // UART 초기화 메시지
+  sprintf(uart_buffer, "DHT11 Temperature & Humidity Sensor Test\r\n");
+  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), HAL_MAX_DELAY);
+
+  /* USER CODE END 2 */
+	    /* USER CODE BEGIN 3 */
+
+	    if (DHT11_ReadData(&dht11_data)) {
+	      // 데이터 읽기 성공
+	      sprintf(uart_buffer, "Temperature: %d°C, Humidity: %d%%\r\n",
+	              dht11_data.temperature, dht11_data.humidity);
+	      HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), HAL_MAX_DELAY);
+	    } else {
+	      // 데이터 읽기 실패
+	      sprintf(uart_buffer, "DHT11 Read Error!\r\n");
+	      HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), HAL_MAX_DELAY);
+	    }
+
+	    // 2초 대기 (DHT11은 최소 2초 간격으로 읽어야 함)
+	    HAL_Delay(2000);
+
+	  }
+	  /* USER CODE END 3 */
+```
+
+
+    /* USER CODE END WHILE */
+```
+=> TIM2 에 연결된게 pan(a/d)조작, TIM3 연결된게 pan(w/s)로 조절<br>
