@@ -186,6 +186,6 @@ PUTCHAR_PROTOTYPE
 
     /* USER CODE END WHILE */
 ```
-=> pos_tilt = pos_tilt - STEP;
+=> TIM2 에 연결된게 pan(a/d)조작, TIM3 연결된게 pan(w/s)로 조절<br>
 
 
