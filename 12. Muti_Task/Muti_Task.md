@@ -31,9 +31,12 @@ __
 
 #### 03) NVIC: 버튼 & TIM2 인터럽트 활성화+ Pin 배정
 <img width="2038" height="876" alt="image" src="https://github.com/user-attachments/assets/060e4153-ad06-4776-ae6e-97fcd1179cc0" /><br>
-=>PA0: LED2(GPIO_Output), PA4:B3(GPIO_EXIT4)-아두이노 보드 사용 <br>
 
-=> LED로는 LD2, 버튼으로는 B1 사용 <br>
+<img width="527" height="506" alt="image" src="https://github.com/user-attachments/assets/9e73c485-ff0c-4664-90db-6a357974e6ab" /> <br>
+=> LED로는 LED2 & LD2, 버튼으로는 B1,B3  사용 <br>
+=> PA0: LED2(GPIO_Output), PA4:B3(GPIO_EXIT4)-아두이노 보드 사용 (버튼은 인터럽, LED는 GPIO_Output)<br>
+
+
 
 
 ___
