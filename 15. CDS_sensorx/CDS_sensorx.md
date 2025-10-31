@@ -159,11 +159,13 @@ PUTCHAR_PROTOTYPE
 		    HAL_Delay(500);
 		  }
 ```
-=>| 표기     | 자료형      | 의미              | 메모리 크기 |
+=>
+| 표기     | 자료형      | 의미              | 메모리 크기 |
 | ------ | -------- | --------------- | ------ |
 | `0`    | `int`    | 정수 0            | 4byte  |
 | `0.0`  | `double` | 실수 0 (기본 부동소수점) | 8byte  |
 | `0.0f` | `float`  | 실수 0 (단정밀도)     | 4byte  |<br>
+
 => if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) : 프로그램 무한 대기 상태 방지<br>
 - ADC변환 약 수 us: 100ms 동안 기다리고 완료(1), 100ms 초과(HAL_TIMEOUT)<br>
 
