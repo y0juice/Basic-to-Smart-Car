@@ -10,16 +10,16 @@
 6)[o] **HC-SR04**: 2개의 초음파센서로 거리측정<br>
 7)[o] **Buzzer**: 부저 사용하여 음악 출력<br>
 8)[o] **CLCD**: terminal 창이 아닌 실제 LCD을 통해 문자 출력<br>
-9)[] **ServoMotor**: 타이머로 SG90 Servo 제어<br>
-10)[] **DHT111**: 온도 센서로 온습도 출력(외부모듈 사용)<br>
-11)[] **Free_LED_blink**: FreeRTOS<br>
-12)[] **Muti_Task**:  interrupt 사용<br>
-13)[] **I2C-EEPROM**<br>
-14)[] **LCD-SPI**<br>
-15)[] **CDS_sensorx**<br>
-16)[] **Rotary_Encoder**<br>
-17)[] **JoyStick**<br>
-18)[] **DHT11**<br>
+9)[o] **ServoMotor**: 타이머로 SG90 Servo 제어<br>
+10)[o] **DHT111**: 온도 센서로 온습도 출력(외부모듈 사용)<br>
+11)[o] **Free_LED_blink**: FreeRTOS<br>
+12)[o] **Muti_Task**:  interrupt 사용<br>
+13)[o] **I2C-EEPROM**<br>
+14)[o] **LCD-SPI**<br>
+15)[o] **CDS_sensorx**<br>
+16)[o] **Rotary_Encoder**<br>
+17)[o] **JoyStick**<br>
+18)[] **DHT11**: LCD+uart+DHT11 <br>
 19)[] **ILI9341**: (터치/SDCard 미구현)<br>
 
 
